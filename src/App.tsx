@@ -21,16 +21,29 @@ function App() {
   type ChatItem = { role: 'user' | 'assistant'; text: string; time: Date }
   const [chat, setChat] = useState<ChatItem[]>([])
 
+  const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null
+
   const extractText = (message: unknown): string => {
+    if (!isRecord(message)) return ''
+
+    const maybeMessage = message as Record<string, unknown>
+
+    const inner = isRecord(maybeMessage.message) ? maybeMessage.message : undefined
+    if (inner && typeof inner.content === 'string') {
+      return inner.content
+    }
+
+    if (typeof maybeMessage.content === 'string') {
+      return maybeMessage.content
+    }
+
+    if (typeof maybeMessage.text === 'string') {
+      return maybeMessage.text
+    }
+
     try {
-      // Best-effort extraction across possible shapes
-      // @ts-expect-error - probing common fields safely
-      return (
-        message?.message?.content ??
-        message?.content ??
-        message?.text ??
-        (typeof message === 'string' ? message : JSON.stringify(message))
-      )
+      return JSON.stringify(message)
     } catch {
       return ''
     }
